@@ -6,12 +6,10 @@ const bodyparser = require('body-parser');
 const cookieparser = require('cookie-parser');
 const handlebars = require('handlebars');
 const app = express ();
-const port = 3000;
+const port = process.env.PORT || 3000;
 const db = require('./models/db.js');
 const data = require('./add_data.js');
 const moment = require('moment');
-const multer = require('multer');
-const crypto = require('crypto');
 
 app.use(bodyparser.urlencoded({
 	extended: true
