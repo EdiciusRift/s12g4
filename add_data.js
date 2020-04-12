@@ -725,6 +725,7 @@ const data = {
 			{
 				acct_email: "justfernandez@gmail.com",
 				it_id: 41253401,
+				name: "Justine Fernandez",
 				date: "January 16, 2020",
 				time: "17:15",
 				content: "This itinerary is perfect for anyone who loves mother nature and a good exercise." +
@@ -735,6 +736,7 @@ const data = {
 			{
 				acct_email: "jedtan@gmail.com",
 				it_id: 8609943,
+				name: "Jed Tan",
 				date: "October 16, 2019",
 				time: "08:45:15",
 				content: "If you are a religious person like me, then you will love this itinerary." +
