@@ -193,6 +193,25 @@ const controller = {
                     transpo = "";
                 else
                     transpo = req.body.act_trans;
+                
+                var address = "";
+                if(street != "" || city != "" || zip != "")
+                {
+                    if(street != "" && city != "" && zip != "")
+                        address = street + ", " + city + ", " + zip;
+                    else if(street != "" && city != "")
+                        address = street + ", " + city;
+                    else if(street != "" && zip != "")
+                        address = street + ", " + zip;
+                    else if(city != "" && zip != "")
+                        address = city + ", " + zip;
+                    else if(street != "")
+                        address = street;
+                    else if(city != "")
+                        address = city;
+                    else if(zip != "")
+                        address = zip;
+                }
 
                 var act = {
                     it_id: req.body.act_id,
@@ -201,7 +220,7 @@ const controller = {
                     stime: stime,
                     etime: etime,
                     cost: cost,
-                    address: street + ', ' + city + ', ' + zip,
+                    address: address,
                     cname: cname,
                     cnum: cnum,
                     cmail: cmail,
