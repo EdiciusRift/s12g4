@@ -178,7 +178,7 @@ $(function(){
     $('#deleteReview').click(function(){
         if(confirm("Are you sure you want to delete this review?"))
         {
-            var it_id = window.location.href.substring(39);
+            var it_id = window.location.href.substring(46);
             $.get('/deleteReview', {it_id : it_id});
         }
     });
@@ -301,7 +301,7 @@ $(function(){
     });
 
     $(document).on("click", "#viewEditReview", function(){
-        var href = $(this).attr('href') + window.location.href.substring(32);
+        var href = $(this).attr('href') + window.location.href.substring(39);
         $(this).attr('href', href);
     });
 
