@@ -8,7 +8,6 @@ const handlebars = require('handlebars');
 const app = express ();
 const port = process.env.PORT || 3000;
 const db = require('./models/db.js');
-const data = require('./add_data.js');
 const moment = require('moment');
 
 app.use(bodyparser.urlencoded({
@@ -45,7 +44,6 @@ handlebars.registerHelper('if_eq', function(a, b, opts) {
 app.use('/', routes)
 
 db.connect();
-data.addData();
 
 app.listen(port, function(){
 	console.log('App listening at port ' + port);
