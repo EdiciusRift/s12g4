@@ -729,7 +729,7 @@ const data = {
 				date: "January 16, 2020",
 				time: "17:15",
 				content: "This itinerary is perfect for anyone who loves mother nature and a good exercise." +
-				"The number of tourists are not overcrowded during this time of the year, and our tour guide is very polite!" +
+				"The number of tourists are not overcrowded during this time of the year, and our tour guide is very polite! " +
 				"Might revisit this place again soon.",
 				stars: 4.5
 			},
