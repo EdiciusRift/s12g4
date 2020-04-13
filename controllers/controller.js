@@ -245,9 +245,17 @@ const controller = {
     },
 
     postMemCreate: function(req, res){
-        var images = req.body.imageNames;
-        if(images)
-        images = images.split(" ");
+        console.log('here');
+        var fileArray = req.files;
+        var location;
+        var imgLoc = [];
+        if(fileArray)
+        {
+            for(let i = 0; i < fileArray.length; i++){
+                location = fileArray[i].location;
+                imgLoc.push(location);
+            }
+        }
         var memory = {
             acct_email: req.cookies.userData.email,
             title: req.body.title,
@@ -255,7 +263,7 @@ const controller = {
             sdate: req.body.sdate,
             edate: req.body.edate,
             totalExp: req.body.expense,
-            photoAlbum: images
+            photoAlbum: imgLoc
         }
         db.insertOne(Memory, memory);
         res.redirect('/tracker');
@@ -497,8 +505,25 @@ const controller = {
     },
 
     postMemEdit: function(req, res){
-        var images = req.body.memimageNames;
-        if(images === "")
+        var fileArray = req.files;
+        var location;
+        var imgLoc = [];
+        if(fileArray)
+        {
+            for(let i = 0; i < fileArray.length; i++){
+                location = fileArray[i].location;
+                imgLoc.push(location);
+            }
+            var update = {
+                title: req.body.memtitle,
+                description: req.body.memcomment,
+                sdate: req.body.memsdate,
+                edate: req.body.memedate,
+                totalExp: req.body.memexpense,
+                photoAlbum: imgLoc
+            }
+        }
+        else
         {
             var update = {
                 title: req.body.memtitle,
@@ -506,17 +531,6 @@ const controller = {
                 sdate: req.body.memsdate,
                 edate: req.body.memedate,
                 totalExp: req.body.memexpense,
-            }
-        }
-        else{
-            images = images.split(" ");
-            var update = {
-                title: req.body.memtitle,
-                description: req.body.memcomment,
-                sdate: req.body.memsdate,
-                edate: req.body.memedate,
-                totalExp: req.body.memexpense,
-                photoAlbum: images
             }
         }
         filter = {_id: req.query._id}
