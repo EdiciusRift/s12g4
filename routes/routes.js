@@ -1,15 +1,25 @@
 const express = require('express');
 const controller = require('../controllers/controller.js');
 const multer = require('multer');
-const storage = multer.diskStorage({
-    destination: function(req, file, cb){
-        cb(null, './public/img/');
-    },
-    filename: function(req, file, cb){
-        cb(null, file.originalname)
-    }
+const multers3 = require('multer-s3');
+const aws = require('aws-sdk');
+const s3 = new aws.S3({
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCESS,
+    Bucket: 'onclick'
+})
+
+
+const upload = multer({
+    storage: multers3({
+        s3: s3,
+        bucket: 'onclick',
+        acl: 'public-read',
+        key: function(req, file, cb) {
+            cb(null, file.originalname)
+        }
+    })
 });
-const upload = multer({storage: storage});
 
 const app = express();
 
@@ -83,7 +93,7 @@ app.post('/login', controller.postLogin);
 
 app.post('/registration', controller.postRegistration);
 
-app.post('/newmemory', upload.array('images', 5) ,controller.postMemCreate);
+app.post('/newmemory', upload.array('memimages', 5) ,controller.postMemCreate);
 
 app.post('/mem_edit',  upload.array('memimages', 5), controller.postMemEdit);
 
