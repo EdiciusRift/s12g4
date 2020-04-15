@@ -4,8 +4,8 @@ const multer = require('multer');
 const multers3 = require('multer-s3');
 const aws = require('aws-sdk');
 const s3 = new aws.S3({
-    accessKeyId: 'AKIAIOCU4PHOIYVHZSGQ',
-    secretAccessKey: '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',
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCESS,
     Bucket: 'onclick'
 })
 
