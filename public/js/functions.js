@@ -790,11 +790,11 @@ $(function(){
         var it_id = $(this).parent().parent().siblings('.id').children().text();
         $.get('/checkReview', {it_id: it_id}, function(result){
             if(result.it_id != null){
-               var href =  '/editReview?it_id='+ result.it_id;
+               var href =  'https://s12gr4.herokuapp.com/editReview?it_id='+ result.it_id;
                $(window).attr('location', href);
             }
             else{
-               var href = '/review?it_id=' + it_id;
+               var href = 'https://s12gr4.herokuapp.com/review?it_id=' + it_id;
                $(window).attr('location', href);
             }
         });
