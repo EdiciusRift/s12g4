@@ -4,8 +4,8 @@ const multer = require('multer');
 const multers3 = require('multer-s3');
 const aws = require('aws-sdk');
 const s3 = new aws.S3({
-    accessKeyId: process.env.ACCESS_KEY,
-    secretAccessKey: process.env.SECRET_ACCESS,
+    accessKeyId: 'AKIAIOCU4PHOIYVHZSGQ',
+    secretAccessKey: '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',
     Bucket: 'onclick'
 })
 
@@ -84,6 +84,8 @@ app.get('/comment', controller.getComment);
 app.get('/editComment', controller.getEditComment);
 
 app.get('/deleteComment', controller.getDeleteComment);
+
+app.get('/checkReview', controller.getCheckReview);
 
 app.post('/editReview', controller.postEditReview);
 

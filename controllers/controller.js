@@ -703,6 +703,13 @@ const controller = {
         var _id = req.query._id;
         condition = {_id: _id};
         db.deleteOne(Comment, condition);
+    },
+    getCheckReview: function(req, res){
+        var it_id = req.query.it_id;
+        var query = {it_id: it_id};
+        db.findOne(Review, query, "it_id", function(result){
+            res.send(result);
+        })
     }
 }
 module.exports = controller;
