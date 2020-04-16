@@ -245,10 +245,10 @@ const controller = {
     },
 
     postMemCreate: function(req, res){
-        console.log('here');
         var fileArray = req.files;
         var location;
         var imgLoc = [];
+        
         if(fileArray)
         {
             for(let i = 0; i < fileArray.length; i++){

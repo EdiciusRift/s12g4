@@ -3,6 +3,7 @@ const controller = require('../controllers/controller.js');
 const multer = require('multer');
 const multers3 = require('multer-s3');
 const aws = require('aws-sdk');
+const path = require('path')
 const s3 = new aws.S3({
     accessKeyId: process.env.ACCESS_KEY,
     secretAccessKey: process.env.SECRET_ACCESS,
@@ -18,7 +19,18 @@ const upload = multer({
         key: function(req, file, cb) {
             cb(null, file.originalname)
         }
-    })
+    }),
+    fileFilter: function (req, file, cb){
+        const filetypes = /jpeg|jpg|png|gif/;
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = filetypes.test(file.mimetype);
+        if(mimetype && extname){
+            return cb(null, true);
+        }
+        else{
+           return cb(null, false);
+        }
+    }
 });
 
 const app = express();

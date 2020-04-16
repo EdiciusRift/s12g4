@@ -43,6 +43,7 @@ var check = function() {
 var loadFile = function(event) {
     var fileSize = event.target.files.length;
     var append = ""
+    var flag = false;
     $("#photoalbum").empty();
     for(var i = 0; i< fileSize; i++)
     {
@@ -62,8 +63,16 @@ var loadFile = function(event) {
             else
             append = append + "img/" + document.getElementById("imgInput").files.item(i).name + " "
         }
+        var file = event.target.files[i];
+        var fileType = file['type'];
+        var validimg = ['image/gif', 'image/png', 'image/jpeg', 'image/jpg'];
+        if(validimg.includes(fileType))
         reader.readAsDataURL(event.target.files[i]);
+        else
+            flag = true;
     }
+    if(flag)
+    alert("You inserted a non-image file. This will not be included");
     document.getElementById("imageNames").value = append;
 
   };
@@ -790,11 +799,11 @@ $(function(){
         var it_id = $(this).parent().parent().siblings('.id').children().text();
         $.get('/checkReview', {it_id: it_id}, function(result){
             if(result.it_id != null){
-               var href =  'https://s12gr4.herokuapp.com/editReview?it_id='+ result.it_id;
+               var href =  '/editReview?it_id='+ result.it_id;
                $(window).attr('location', href);
             }
             else{
-               var href = 'https://s12gr4.herokuapp.com/review?it_id=' + it_id;
+               var href = '/review?it_id=' + it_id;
                $(window).attr('location', href);
             }
         });
