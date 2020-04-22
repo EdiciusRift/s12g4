@@ -45,7 +45,7 @@ handlebars.registerHelper('if_eq', function(a, b, opts) {
 app.use('/', routes)
 
 db.connect();
-//data.addData();
+data.addData();
 
 app.listen(port, function(){
 	console.log('App listening at port ' + port);
