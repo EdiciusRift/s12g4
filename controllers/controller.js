@@ -159,9 +159,7 @@ const controller = {
         res.redirect('/homepage');
     },
     postSignup: function(req,res){
-        var append = 'https://onclick.s3-ap-southeast-1.amazonaws.com/'
-        var photo = req.body.photo
-        photo = photo + append;
+        var photo = req.files
         if(!photo){
             photo = 'default.png';
         }
