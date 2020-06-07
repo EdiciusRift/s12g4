@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title> {{title}} </title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+		<!-- jQuery library -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+		<!-- Latest compiled JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+        <!------ Include the above in your HEAD tag ---------->
+    <style type="text/css">
+    @import "compass/css3";
+    @import url(http://fonts.googleapis.com/css?family=Fjalla+One);
+    @import url(http://fonts.googleapis.com/css?family=Gudea);
+    .dl-small {
+    margin-bottom: 4px;
+    }
+    header {
+    margin: 0 auto;
+    padding: 1em;
+    max-width: 800px;
+    }
+    .form-control {
+    width: auto;
+    }
+    .form-control-small {
+    width: 100px;
+    }
+    .form-control-large {
+    width: 310px;
+    }
+    </style>
+</head>
+
+<body style= "background-color: #ffd3b6; font-color: black; font-family: Helvetica Neue, sans-serif; letter-spacing: 1.5px; font-weight: 500;">
+  <header class = "header" style = "font-color: black; font-weight: 500; font-family: Helvetica Neue, sans-serif;">
+
+      <div class="container-fluid">
+        <div id="success" class="modal fade myModal " role="dialog" data-backdrop="static">
+						<div class="modal-dialog ">
+
+							<!-- Modal content-->
+							<div class="modal-content">
+							<div class="modal-header">
+								<h4 class="modal-title">Success!</h4>
+							</div>
+							<div class="modal-body">
+								<p>Checkout complete! Visit your profile to view delivery and order details.</p>
+							</div>
+							<div class="modal-footer">
+								<a href="/profile#purchases" type="button" class="btn btn-success">View Profile</a>
+							</div>
+							</div>
+
+						</div>
+						</div>
+      <div class="page-header">
+        <h1 style="margin-top: 60px; font-family: Fjalla One;"> Checkout </h1>
+      </div>
+      <div class="row">
+        <h3><strong>Total Cost: {{total}}</strong></h3>
+          <hr>
+          <h2 style="font-family: Gudea;">Delivery Address:</h2>
+          <div class="list-group">
+            <div class="list-group-item">
+              <div class="list-group-item-heading">
+                  <div class="row radio">
+                    <div class="col-xs-5">
+                        {{address}} <br><strong>{{state}}</strong><br>
+                      <a href="/profile" style="color: black;"><button class="btn btn-sm">Edit Address</button></a>
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+          <hr>
+          <h2 style="font-family: Gudea;"> I'll pay with: </h2>
+          <div class="list-group">
+
+            <div class="list-group-item">
+              <div class="list-group-item-heading">
+                  <div class="row radio">
+                    <div class="col-xs-3">
+                      <label>
+                        <input type="radio" name="optionsRadios" id="optionsRadios2" value="option2" checked>
+                        COD
+                      </label>
+                    </div>
+                    <div class="col-xs-9">
+                      <div class="media">
+                        <a class="media-left" href="#">
+                          <img src="cod.png" height="25" alt="" />
+                        </a>
+                        <div class="media-body">
+                          Payment to be made in cash once item is delivered.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            </div>
+            <div class="list-group-item">
+              <center>We are continuously adding support to other payment methods. Thank you for your continous support!</center>
+            </div>
+          </div>
+          <form method="POST" id="form">
+          <input type="text" id="rand" name="rand" hidden>
+          </form>
+          <div class="well">
+            <button id="submit" type="submit" class="btn btn-primary btn-lg btn-block" form="form">Place Order</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+<script>
+  $(document).ready(function(){
+    var nums = '0123456789';
+    var rtn = '';
+    for (var i = 0; i < 8; i++) 
+    {
+        rtn += nums.charAt(Math.floor(Math.random() * nums.length));
+    }
+    $('#rand').val(rtn)
+    $('#submit').click(function(){
+      $('#success').modal('toggle');
+      $('#success').modal({keyboard: false})  
+    })
+  })
+  
+</script>
+</body>
+</html>

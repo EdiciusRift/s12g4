@@ -1,715 +1,809 @@
-
 const db = require('../models/db.js');
 const crypto = require('crypto');
 const sanitize = require('mongo-sanitize');
-const Account= require('../models/AccountModel.js');
-const Activity= require('../models/ActivityModel.js');
-const Comment= require('../models/CommentModel.js');
-const Itinerary= require('../models/ItineraryModel.js');
-const Memory= require('../models/MemoryModel.js');
-const Review= require('../models/ReviewModel.js');
-
+const Account= require('../models/UserModel.js');
+const Product = require('../models/ProductModel.js');
+const Log = require('../models/LoggedModel.js');
+const Review = require('../models/ReviewModel.js');
+const Transaction = require('../models/TransModel.js');
+const History = require('../models/HistoryModel.js');
+const Category = require('../models/CategoryModel.js');
+const Cart = require('../models/CartModel.js');
+const Wishlist = require('../models/WishlistModel.js');
 const controller = {
-    getAbout: function(req,res){
-        res.    render('about_us',{
-            title: 'About Us'
-        });
-    },
-    getLogin: function(req, res){
-        res.render('login', {
-            title: 'Login'
-        });
-        
-    },
-    getHome: function(req,res){
-        res.render('home', {
-            title: 'Welcome'
-        });
-    },
-    getRegistration: function(req, res){
-        res.render('registration', {title: "Registration"});
-    },
-    getDashboard: function(req, res){
+
+    getHomepage: function (req, res) {
         var checker = req.cookies.userData;
         if(!checker)
         {
-            res.redirect('/error')
-        }
-        else{
-        var query = null;
-        var projection = null;
-        var sort = {it_sdate: -1}
-        db.findManySorted(Itinerary, query, projection, sort, function(itresult){
-            db.findMany(Review, query, projection, function(revresult){
-                db.findManySorted(Comment, query, projection, {date: 1}, function(comresult){
-                    res.render('dashboard', {title: 'Dashboard', username: req.cookies.userData.username, email:req.cookies.userData.email, fname: req.cookies.userData.fname, lname: req.cookies.userData.lname,
-                    itinerary: itresult.map(itresult => itresult.toJSON()), review: revresult.map(revresult => revresult.toJSON()), comment: comresult.map(comresult => comresult.toJSON())});
+            db.findOne(Log, null, null, function(result){
+                db.findManyLimited(Product, null, null, 6, function(prodresult){
+                    res.render('homepage', {
+                        title: 'HOME', logged: result.logged, product: prodresult.map(prodresult => prodresult.toJSON())
+                    });
                 })
                 
             })
-        });
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                db.findManyLimited(Product, null, null, 6, function(prodresult){
+                    res.render('homepage', {
+                        title: 'HOME', logged: result.logged, firstname: req.cookies.userData.firstname, product: prodresult.map(prodresult => prodresult.toJSON())
+                    });
+                })
+                
+            })
+        }
+        
+    },
+    getSearch: function(req,res){
+        var checker = req.cookies.userData;
+        var query = {$or: [{name: {'$regex' : req.query.search, '$options' : 'i'}}, {type: {'$regex' : req.query.search, '$options' : 'i'}}]}
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                db.findMany(Product, query, null, function(prodresult){
+                    res.render('search', {
+                        title: 'SEARCH', logged: result.logged, product: prodresult.map(prodresult => prodresult.toJSON())
+                    });
+                })
+                
+            })
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                db.findMany(Product, query, null, function(prodresult){
+                    res.render('search', {
+                        title: 'SEARCH', logged: result.logged, firstname: req.cookies.userData.firstname, product: prodresult.map(prodresult => prodresult.toJSON())
+                    });
+                })
+                
+            })
         }
     },
-    getLogout: function(req, res){
+    getAboutUs: function (req, res) {
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                res.render('aboutus', {
+                    title: 'ABOUT US', logged: result.logged
+                });
+            })
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                res.render('aboutus', {
+                    title: 'ABOUT US', logged: result.logged, firstname: req.cookies.userData.firstname
+                });
+            })
+        }
+    },
+    getBoss: function (req, res) {
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                res.render('boss', {
+                    title: 'OUR BOSSES', logged: result.logged
+                });
+            })
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                res.render('boss', {
+                    title: 'OUR BOSSES', logged: result.logged, firstname: req.cookies.userData.firstname
+                });
+            })
+        }
+    },
+    getLogout: function(req,res){
         res.clearCookie('userData');
-        res.render('logout', {title: "Logout Successful"});
+        db.updateOne(Log, {logged: 1}, {logged: 0});
+        res.redirect('/homepage');
     },
-    getSuccess: function(req, res){
-        res.render('success', {title: "Registration Successful"});
+    getLogin: function (req, res) {
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                res.render('login', {title: 'LOGIN', hidden: "hidden", logged: result.logged
+                });
+            })
+        }
+        else
+        res.redirect('/homepage');
     },
-    postLogin: function(req, res){
-        var u = sanitize(req.body.username);
+    postLogin: function(req, res)
+    {
+        var u = sanitize(req.body.email);
         var p = sanitize(req.body.password);
-        var query = {username: u};
+        var query = {email: u};
         var projection = null;
-        var hash = crypto.createHash('sha256');
+        var hash = crypto.createHash('md5');
         db.findOne(Account, query, projection, function(result){
-            if(result === null)
-            {
-                res.render('login', {title: 'Login', message: "Username or Password is incorrect"});
+            if(result===null){
+                res.render('login', {title: 'LOGIN', hidden: ""});
             }
-            else
-            {
+            else{
                 var passHash = p + result.salt;
                 hash = hash.update(passHash).digest('hex');
                 if(hash === result.hash)
                 {
+                    var dateToday = new Date();
+                    db.updateMany(Transaction, null, {dateToday: dateToday});
+                    db.updateOne(Log, {logged: 0}, {logged: 1});
                     res.cookie("userData", result);
-                    res.redirect('/dashboard');
+                    res.redirect('/homepage');
                 }
                 else
                 {
-                    res.render('login', {title: 'Login', message: "Username or Password is incorrect"});
+                    res.render('login', {title: 'LOGIN', hidden: ""});
 
                 }
             }
-        });
+        })
     },
-    postRegistration: function(req, res){
-        var compAddress = req.body.city;
-        var compAddress = compAddress + " " + req.body.country;
-        var birthday = new Date(req.body.birthday);
-        var ageDifMs = Date.now() - birthday.getTime();
-        var ageDate = new Date(ageDifMs); // miliseconds from epoch
-        var age = Math.abs(ageDate.getFullYear() - 1970);
+    getSignup: function (req, res) {
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                res.render('signup', {
+                    title: 'SIGN UP', logged: result.logged
+                });
+            })
+        }
+        else
+        res.redirect('/homepage');
+    },
+    postSignup: function(req,res){
+        var append = 'https://onclick.s3-ap-southeast-1.amazonaws.com/'
+        var photo = req.body.photo
+        photo = photo + append;
+        if(!photo){
+            photo = 'default.png';
+        }
         var salt = crypto.randomBytes(64).toString('base64');
         var password = req.body.password + salt;
-        var hash = crypto.createHash('sha256').update(password).digest('hex');
-        var user = 	{
-
-            fname: req.body.Fname,
-            lname: req.body.Lname,
+        var hash = crypto.createHash('md5').update(password).digest('hex');
+        var user = {
+            firstname: req.body.namesu1,
+            lastname: req.body.namesu2,
             email: req.body.email,
-            username: req.body.username,
+            state: req.body.region,
             hash: hash,
             salt: salt,
-            age: age,
-            address: compAddress,
-            birthday: req.body.birthday,
-            occupation: req.body.occupation,
-            passport_id: req.body.ppid
+            photo: photo
         }
         db.insertOne(Account, user);
-        res.redirect('/success');
+        db.updateOne(Log, {logged: 0}, {logged: 1});
+        var cart = {
+            user: req.body.email
+        }
+        db.insertOne(Cart, cart);
+        db.insertOne(Wishlist, cart);
+        var dateToday = new Date();
+        db.updateMany(Transaction, null, {dateToday: dateToday});
+        res.cookie("userData", user);
+        res.redirect('/homepage');
     },
-    getItCreate: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else
-        res.render('it_create', {title: 'Create Itinerary', username: req.cookies.userData.username})
-    },
-
-    postItCreate: function(req, res, next){
-        var loopCtr = 0;
-        var choiceCtr = 0;
-        var it_id = req.body.it_id;
-        while(choiceCtr == loopCtr)
-        {
-            if(req.body.hasOwnProperty("create_it"))
-            {
-                choiceCtr += 2;
-                var it = {
-                    acct_email: req.cookies.userData.email,
-                    it_id: it_id,
-                    it_name: req.body.it_name,
-                    it_sdate: req.body.it_start,
-                    it_edate: req.body.it_end,
-                    it_location: req.body.it_loc
-                }
-                db.insertOne(Itinerary, it);
-                res.redirect('/itineraries');
-            }
-
-            else if(req.body.hasOwnProperty("addAct"))
-            {
-                choiceCtr += 1;
-                
-                var name, date, stime, etime, cost, address, cname, cnum, cmail, transpo;
-                if (req.body.act_date == null)
-                    date = "";
-                else
-                    date = req.body.act_date;
-                if (req.body.act_stime == null)
-                    stime = "";
-                else
-                    stime = req.body.act_stime;
-                if (req.body.act_etime == null)
-                    etime = "";
-                else
-                    etime = req.body.act_etime;
-                if (req.body.act_cost == null)
-                    cost = "";
-                else
-                    cost = req.body.act_cost;
-                if (req.body.act_street == null)
-                    street = "";
-                else
-                    street = req.body.act_street;
-                if (req.body.act_city == null)
-                    city = "";
-                else
-                    city = req.body.act_city;
-                if (req.body.act_zip == null)
-                    zip = "";
-                else
-                    zip = req.body.act_zip;
-                if (req.body.act_cname == null)
-                    cname = "";
-                else
-                    cname = req.body.act_cname;
-                if (req.body.act_cnum == null)
-                    cnum = "";
-                else
-                    cnum = req.body.act_cnum;
-                if (req.body.act_cmail == null)
-                    cmail = "";
-                else
-                    cmail = req.body.act_cmail;
-                if (req.body.act_trans == null)
-                    transpo = "";
-                else
-                    transpo = req.body.act_trans;
-                
-                var address = "";
-                if(street != "" || city != "" || zip != "")
-                {
-                    if(street != "" && city != "" && zip != "")
-                        address = street + ", " + city + ", " + zip;
-                    else if(street != "" && city != "")
-                        address = street + ", " + city;
-                    else if(street != "" && zip != "")
-                        address = street + ", " + zip;
-                    else if(city != "" && zip != "")
-                        address = city + ", " + zip;
-                    else if(street != "")
-                        address = street;
-                    else if(city != "")
-                        address = city;
-                    else if(zip != "")
-                        address = zip;
-                }
-
-                var act = {
-                    it_id: req.body.act_id,
-                    name: req.body.act_name,
-                    date: date,
-                    stime: stime,
-                    etime: etime,
-                    cost: cost,
-                    address: address,
-                    cname: cname,
-                    cnum: cnum,
-                    cmail: cmail,
-                    transpo: transpo
-                }
-
-                db.insertOne(Activity, act);
-            }
-        }
-        
-    },
-
-    getMemCreate: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else
-        res.render('newmemory', {title: 'Create Memory', username: req.cookies.userData.username});
-    },
-
-    postMemCreate: function(req, res){
-        var fileArray = req.files;
-        var location;
-        var imgLoc = [];
-        
-        if(fileArray)
-        {
-            for(let i = 0; i < fileArray.length; i++){
-                location = fileArray[i].location;
-                imgLoc.push(location);
-            }
-        }
-        var memory = {
-            acct_email: req.cookies.userData.email,
-            title: req.body.title,
-            description: req.body.comment,
-            sdate: req.body.sdate,
-            edate: req.body.edate,
-            totalExp: req.body.expense,
-            photoAlbum: imgLoc
-        }
-        db.insertOne(Memory, memory);
-        res.redirect('/tracker');
-    },
-
-    getTracker: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-        var query = {acct_email: req.cookies.userData.email};
-        projection = null;
-        sort= {sdate: -1}
-        db.findManySorted(Memory, query, projection, sort, function(result){
-            res.render('tracker', {title: 'My Memories', username: req.cookies.userData.username, memory: result.map(result => result.toJSON())});
-        });
-    }
-    },
-
-    getAllIt: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-        var query = {acct_email: req.cookies.userData.email};
-        projection = null;
-        sort = {it_sdate: -1}
-        db.findManySorted(Itinerary, query, projection, sort, function(result){
-            res.render('itineraries', {title: 'My Itineraries', username: req.cookies.userData.username, itinerary: result.map(result => result.toJSON())});
-        });
-    }
-    },
-
-    getItView: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-        var it_name = sanitize(req.query.it_name);
-        var it_id = sanitize(req.query.it_id);
-        var it_sdate = sanitize(req.query.it_sdate);
-        var it_edate = sanitize(req.query.it_edate);
-        var it_location = sanitize(req.query.it_location);
-        var query = {it_id: it_id};
-        projection = null;
-        db.findMany(Activity, query, projection, function(actresult){
-            db.findOne(Review, query, null, function(revresult){
-                res.render('it_view', {title: 'View Itinerary', username: req.cookies.userData.username, it_id: it_id, it_name: it_name, it_sdate: it_sdate, it_edate: it_edate, it_location: it_location, activity: actresult.map(actresult => actresult.toJSON()),
-            review: revresult});
-            })
-            
-        });
-    }
-    },
-
-    getItEdit: function(req,res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-
-        var it_name = sanitize(req.query.it_name);
-        var it_id = sanitize(req.query.it_id);
-        var it_sdate = sanitize(req.query.it_sdate);
-        var it_edate = sanitize(req.query.it_edate);
-        var it_location = sanitize(req.query.it_location);
-        var query = {it_id: it_id};
-        var projection = null;
-
-
-        db.findMany(Activity, query, projection, function(result){
-            res.render('it_edit', 
-                {
-                    title: 'Edit Itinerary', 
-                    username: req.cookies.userData.username,
-                    it_name: it_name,
-                    it_id: it_id,
-                    it_sdate: it_sdate,
-                    it_edate: it_edate,
-                    it_location: it_location,
-                    activity: result.map(result => result.toJSON())});
-        });
-    }
-
-    },
-
-    postItEdit: function(req,res){
-
-        var update = {
-
-            it_name: req.body.itname,
-            it_sdate: req.body.itsdate,
-            it_edate: req.body.itedate,
-            it_location: req.body.itlocation
-        }
-                
-        filter = {it_id: req.query.it_id};
-
-        db.updateOne(Itinerary, filter, update);
-
-        res.redirect('/itineraries');
-    
-    },
-
-    getActEdit: function(req,res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-
-        var update = {
-
-            date: req.query.date,
-            stime: req.query.stime,
-            etime: req.query.etime,
-            cost: req.query.cost,
-            address: req.query.address,
-            cname: req.query.cname,
-            cnum: req.query.cnum,
-            cmail: req.query.cmail,
-            transpo: req.query.transpo
-                
-        }
-
-
-        var query = {it_id: req.query.it_id, name: req.query.name};
-
-        db.updateOne(Activity, query, update);
-    }
-
-    },
-
-    getActDelete: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-
-        var filter = {it_id: req.query.it_id, name: req.query.name};
-        db.deleteOne(Activity, filter);
-        }
-
-    },
-
-    getMemSearch: function(req,res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-        var query = {$or: [{title: {'$regex' : req.query.search, '$options' : 'i'}}, {description: {'$regex' : req.query.search, '$options' : 'i'}}], acct_email: req.cookies.userData.email};
-        projection = null;
-        db.findMany(Memory, query, projection, function(result){
-            res.render('memorySearch', {title: 'Memory Search', mem_search: req.query.search, username: req.cookies.userData.username, memory: result.map(result => result.toJSON())});
-        })
-    }
-    },
-
-    getItSearch: function(req,res){
-
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-            var number = parseInt(req.query.itSearch)
-            if(number)
-            var query = {$or: [{it_name: {'$regex' : req.query.itSearch, '$options' : 'i'}}, {it_location: {'$regex' : req.query.itSearch, '$options' : 'i'}}, {it_id: number}]};
-            else
-            var query = {$or: [{it_name: {'$regex' : req.query.itSearch, '$options' : 'i'}}, {it_location: {'$regex' : req.query.itSearch, '$options' : 'i'}}]};
-            projection = null;
-            sort = {it_sdate: -1}
-            db.findManySorted(Itinerary, query, projection, sort, function(itresult){
-                db.findMany(Review, null, projection, function(revresult){
-                    db.findManySorted(Comment, null, projection, {date: 1}, function(comresult){
-                        res.render('search', {title: 'Itinerary Search Result/s', username: req.cookies.userData.username, 
-                        itinerary: itresult.map(itresult => itresult.toJSON()), review: revresult.map(revresult => revresult.toJSON()), comment: comresult.map(comresult => comresult.toJSON())});
-                    })
-                
-                })
-            });
-            
-        }
-    },
-
-    getCheckUsername: function(req,res){
-        var username = req.query.username;
-        var query = {username: username};
-        projection = 'username';
+    getCheckEmail: function(req,res){
+        var email = req.query.email;
+        var query = {email: email};
+        projection = 'email';
         db.findOne(Account, query, projection, function(result){
+            res.send(result)
+        })
+    },
+    getProducts: function(req,res){
+        var checker = req.cookies.userData;
+        var query = {name: req.query.name};
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                db.findOne(Product, query, null, function(prodresult){
+                    db.findMany(Review, {item: req.query.name}, null, function(revresult){
+                        res.render('products', {
+                            title: 'PRODUCTS', logged: result.logged, name: prodresult.name, desc: prodresult.desc, photo: prodresult.photo, price: prodresult.price,
+                            rating: prodresult.rating, region: 'Metro Manila', sold: prodresult.sold, reviews: prodresult.reviews, review: revresult.map(revresult => revresult.toJSON())
+                        });
+                    })
+                    
+                })
+                
+            })
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                db.findOne(Product, query, null, function(prodresult){
+                    db.findMany(Review, {item: req.query.name}, null, function(revresult){
+                        res.render('products', {
+                            title: 'PRODUCTS', logged: result.logged, name: prodresult.name, firstname: req.cookies.userData.firstname, desc: prodresult.desc, photo: prodresult.photo, price: prodresult.price,
+                            rating: prodresult.rating, region: req.cookies.userData.state, sold: prodresult.sold, reviews: prodresult.reviews, review: revresult.map(revresult => revresult.toJSON())
+                        });
+                    })
+                    
+                })
+                
+            })
+        }
+    },
+    getLogged: function(req,res){
+        var query = {logged: req.query.logged};
+        db.findOne(Log, query, null, function(result){
             res.send(result);
         })
     },
-
-    getDeleteMemory: function(req, res){
-        var condition = {_id: req.query._id};
-        db.deleteOne(Memory, condition);
-    },
-
-    getMemEdit: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-        var _id = sanitize(req.query._id);
-        var query = {_id: _id};
-        var projection = null;
-        db.findOne(Memory, query, projection, function(result){
-            res.render('mem_edit', {title: 'Edit Memory', username: req.cookies.userData.username, mem_title: result.title, mem_desc: result.description,
-                                   mem_sdate: result.sdate, mem_edate: result.edate, mem_cost: result.totalExp});
-        })
-    }
-        
-    },
-
-    postMemEdit: function(req, res){
-        var fileArray = req.files;
-        var location;
-        var imgLoc = [];
-        if(fileArray)
-        {
-            for(let i = 0; i < fileArray.length; i++){
-                location = fileArray[i].location;
-                imgLoc.push(location);
-            }
-            var update = {
-                title: req.body.memtitle,
-                description: req.body.memcomment,
-                sdate: req.body.memsdate,
-                edate: req.body.memedate,
-                totalExp: req.body.memexpense,
-                photoAlbum: imgLoc
-            }
-        }
-        else
-        {
-            var update = {
-                title: req.body.memtitle,
-                description: req.body.memcomment,
-                sdate: req.body.memsdate,
-                edate: req.body.memedate,
-                totalExp: req.body.memexpense,
-            }
-        }
-        filter = {_id: req.query._id}
-        db.updateOne(Memory, filter, update);
-        res.redirect('/tracker');
-    },
-
-    getDownloadIt: function(req, res){
-        var checker = req.cookies.userData;
-        
-        if(!checker)
-        {
-            res.redirect('/error')
-        }
-        else{
-        var it_name = req.query.it_name;
-        var it_id = sanitize(req.query.it_id);
-        var it_sdate = req.query.it_sdate;
-        var it_edate = req.query.it_edate;
-        var it_location = req.query.it_location;
-        var query = {it_id: it_id};
-        projection = null;
-        db.findMany(Activity, query, projection, function(result){
-            res.render('download_it', {it_id: it_id, it_name: it_name, it_sdate: it_sdate, it_edate: it_edate, it_location: it_location, activity: result.map(result => result.toJSON())});
-        })
-    }
-    },
-
-    getDeleteIt: function(req, res){
-        var it_id = sanitize(req.query.it_id)
-        var condition = {it_id: it_id};
-        db.deleteOne(Itinerary, condition);
-        db.deleteMany(Activity, condition);
-    },
-
-    getError: function(req,res){
-        res.render("error", {title: "Error"});
-    },
-    getDetails: function(req, res){ 
-        var checker = req.cookies.userData; 
-         
-        if(!checker) { 
-            res.redirect('/error') 
-        } 
-        else{ 
-            var it_name = req.query.it_name; 
-            var it_id = sanitize(req.query.it_id);
-            var it_sdate = req.query.it_sdate; 
-            var it_edate = req.query.it_edate; 
-            var it_location = req.query.it_location; 
-            var query = {it_id: it_id}; projection = null; 
-            db.findMany(Activity, query, projection, function(result){ 
-                res.render('details', {title: 'View Itinerary', username: req.cookies.userData.username, 
-                it_id: it_id, it_name: it_name, it_sdate: it_sdate, it_edate: it_edate, it_location: it_location, activity: result.map(result => result.toJSON())}); }); 
-            } 
-    },
-    getViewReview: function(req, res){
-        var checker = req.cookies.userData; 
-         
-        if(!checker) { 
-            res.redirect('/error') 
-        } 
-        else{ 
-            var it_id = sanitize(req.query.it_id)
-            var query = {it_id: it_id};
-            db.findOne(Itinerary, query, null, function(itresult){
-                db.findOne(Review, query, null, function(revresult){
-                    res.render('viewReview', {title: 'Review', username: req.cookies.userData.username, it_name: itresult.it_name, stars: revresult.stars, date: revresult.date, time: revresult.time, content: revresult.content})
-                })
-            })
-        }
-    },
-    getDeleteReview: function(req,res){
-        var it_id = sanitize(req.query.it_id)
-        var condition = {it_id: it_id};
-        db.deleteOne(Review, condition);
-    },
-
     getReview: function(req, res){
-        var checker = req.cookies.userData; 
-         
-        if(!checker) { 
-            res.redirect('/error') 
-        } 
-        else{
-            var it_id = sanitize(req.query.it_id)
-            var query = {it_id: it_id};
-            db.findOne(Itinerary, query, null, function(result){
-                res.render('review', {title:"Create Review", username: req.cookies.userData.username, it_name: result.it_name, it_id: result.it_id})
+        var revquery = {item: req.query.item, user: req.cookies.userData.email};
+            db.findOne(Review, revquery, null, function(revresult){
+                res.send(revresult);
             })
-        }
     },
-
-    postReview: function(req, res)
-    {
-        var today = new Date();
-        var time = ("0" + today.getHours()).slice(-2) + ':' + ("0" + today.getMinutes()).slice(-2);
-        var name = req.cookies.userData.fname + " " + req.cookies.userData.lname
+    getBought: function(req,res){
+        var revquery = {name: req.query.name, email: req.cookies.userData.email, status: "Delivered"};
+            db.findOne(History, revquery, null, function(hisresult){
+                res.send(hisresult);
+            })
+    },
+    postProducts: function(req,res){
+        var name = req.cookies.userData.firstname + " " + req.cookies.userData.lastname;
+        var today = new Date()
         var review = {
-            acct_email: req.cookies.userData.email,
-            it_id: req.body.it_id,
+            user: req.cookies.userData.email,
             name: name,
+            item: req.body.pnametext,
             date: today,
-            time: time,
-            content: req.body.content,
-            stars: req.body.stars
+            photo: req.cookies.userData.photo,
+            rating: req.body.stars,
+            message: req.body.content,
+            title: req.body.title
         }
         db.insertOne(Review, review);
-        var redirect = '/viewReview?it_id='+req.body.it_id;
-        res.redirect(redirect);
+        var query = {name: req.body.pnametext} 
+        db.findOne(Product, query, null, function(result){
+            var reviews = result.reviews + 1;
+            var rating = (result.rating + req.body.stars) / reviews
+            var update = {
+                reviews: reviews,
+                rating: rating
+            }
+            db.updateOne(Product, query, update);
+        })
+        redirect = '/products?name=' + req.body.pnametext
+        res.redirect(redirect)
     },
-    getEditReview: function(req, res){
-        var checker = req.cookies.userData; 
-         
-        if(!checker) { 
-            res.redirect('/error') 
-        } 
+    getAddCart: function(req,res){
+        var item
+        var photo
+        var price
+        var query = {user: req.cookies.userData.email}
+        var quantity = Number(req.query.quantity)
+        if(!quantity)
+        quantity = 1
+        db.findOne(Cart, query, null, function(result){
+            item = result.item;
+            photo = result.photo;
+            price = result.price;
+            for(var i = 0; i < quantity; i++){
+                item.push(req.query.item);
+                photo.push(req.query.photo);
+                price.push(req.query.price);
+            }
+            var update = {
+                item: item,
+                photo: photo,
+                price: price
+            }
+            db.updateOne(Cart, query, update);
+        })
+    },
+    getAddWishlist: function(req,res){
+        var item
+        var photo
+        var price
+        var query = {user: req.cookies.userData.email}
+        db.findOne(Wishlist, query, null, function(result){
+            item = result.item;
+            photo = result.photo;
+            price = result.price;
+                item.push(req.query.item);
+                photo.push(req.query.photo);
+                price.push(req.query.price);
+            var update = {
+                item: item,
+                photo: photo,
+                price: price
+            }
+            db.updateOne(Wishlist, query, update);
+        })
+    },
+    getProfile: function(req,res) {
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            res.redirect('/homepage');
+        }
         else{
-            var it_id = sanitize(req.query.it_id)
-            var query = {it_id: it_id};
-            db.findOne(Itinerary, query, null, function(result){
-                db.findOne(Review, query, null, function(revresult){
-                    res.render('editReview', {title:"Edit Review", username: req.cookies.userData.username, it_name: result.it_name, it_id: result.it_id, stars: revresult.stars, content: revresult.content})
+            var query = {
+                email: req.cookies.userData.email
+            }
+            db.findOne(Log, null, null, function(result){
+                db.findManySorted(History, query, null, {dateOrd: -1} ,function(hisresult){
+                    db.findMany(Transaction, query, null, function(transresult){
+                        res.render('profile', {
+                            title: 'PROFILE', logged: result.logged, firstname: req.cookies.userData.firstname, lastname: req.cookies.userData.lastname, num: req.cookies.userData.num,
+                            email: req.cookies.userData.email, address: req.cookies.userData.address, region: req.cookies.userData.state, photo: req.cookies.userData.photo,
+                            transaction: transresult.map(transresult => transresult.toJSON()), history: hisresult.map(hisresult =>hisresult.toJSON())
+                    })
+                    
+                        
+                })
+                
+                
+            })
+        })
+        }
+    },
+    getCheckId: function(req,res){
+        var id = req.query.id;
+        var query = {id: id, email: req.cookies.userData.email};
+        db.findOne(Transaction, query, null, function(result){
+            res.send(result);
+        })
+    },
+    getCheckname: function(req,res){
+        var name = req.query.name;
+        var dateOrd = req.query.dateOrd;
+        var query = {
+            email: req.cookies.userData.email,
+            name: name,
+            dateOrd: dateOrd
+        }
+        db.findOne(History, query, null, function(result){
+            res.send(result);
+        })
+    },
+    getReceive: function(req,res){
+        var id = req.query.id;
+        var update = {delivered: 1}
+        var query;
+        db.updateOne(Transaction, {id: id, email: req.cookies.userData.email}, update);
+        db.findOne(Transaction, {id: id, email: req.cookies.userData.email}, null, function(result){
+            var dateOrd = result.dateOrd;
+            var items = result.items;
+            var photos = result.photos
+            var prices = result.prices
+            var history;
+            for(i = 0; i< items.length; i++){
+                history = {
+                    email: req.cookies.userData.email,
+                    name: items[i],
+                    photo: photos[i],
+                    price: prices[i],
+                    dateOrd: dateOrd,
+                    quantity: 1,
+                    status: 'Delivered'
+                }
+                db.insertOne(History, history);
+                query =  {name: items[i]}
+                db.findOne(Product, query, null, function(result){
+                    var prodsold = result.sold;
+                    prodsold += 1;
+                    var produpdate = {
+                        sold: prodsold
+                    }
+                    db.updateOne(Product, query, produpdate)
+                })
+            }
+        })
+    },
+    getCancel: function(req,res){
+        var id = req.query.id;
+        var update = {cancelled: 1}
+        db.updateOne(Transaction, {id: id, email: req.cookies.userData.email}, update);
+        db.findOne(Transaction, {id: id, email: req.cookies.userData.email}, null, function(result){
+            var dateOrd = result.dateOrd;
+            var items = result.items;
+            var photos = result.photos
+            var prices = result.prices
+            var history;
+            for(i = 0; i< items.length; i++){
+                history = {
+                    email: req.cookies.userData.email,
+                    name: items[i],
+                    photo: photos[i],
+                    price: prices[i],
+                    dateOrd: dateOrd,
+                    quantity: 1,
+                    status: 'Cancelled'
+                }
+                db.insertOne(History, history);
+            }
+        })
+    },
+    getReturn: function(req,res){
+        var name = req.query.name;
+        var dateOrd = req.query.date;
+        var update = {status: 'Returned'}
+        var filter = {
+            email: req.cookies.userData.email,
+            dateOrd: dateOrd,
+            status: "Delivered"
+        }
+        db.updateOne(History, filter, update)
+    },
+    getContactUs: function (req, res) {
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                res.render('contactus', {
+                    title: 'CONTACT US', logged: result.logged
+                });
+            })
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                res.render('contactus', {
+                    title: 'CONTACT US', logged: result.logged, firstname: req.cookies.userData.firstname
+                });
+            })
+        }
+    },
+    getUnavailable: function (req, res) {
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                res.render('unavailable', {
+                    title: 'UNAVAILABLE', logged: result.logged
+                });
+            })
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                res.render('unavailable', {
+                    title: 'UNAVAILABLE', logged: result.logged, firstname: req.cookies.userData.firstname
+                });
+            })
+        }
+    },
+    getCategories: function(req,res) {
+        var checker = req.cookies.userData;
+        var query = {type: {'$regex' : req.query.type, '$options' : 'i'}}
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                db.findMany(Product, query, null, function(prodresult){
+                    db.findOne(Category, query, null, function(catresult){
+                        res.render('categories', {
+                            title: catresult.title, logged: result.logged, banners: catresult.banners, count: catresult.count,
+                            activebanner: catresult.activebanner, category: catresult.type, gif: catresult.gif, gifclass: catresult.gifclass,
+                            activeimg: catresult.activeimg, quote: catresult.quote, actname: catresult.actname, products: prodresult.map(prodresult => prodresult.toJSON())
+                    })
+            
+                })
+                
+            })
+        })
+            
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                db.findMany(Product, query, null, function(prodresult){
+                    db.findOne(Category, query, null, function(catresult){
+                        res.render('categories', {
+                            title: catresult.title, logged: result.logged, banners: catresult.banners, count: catresult.count,
+                            activebanner: catresult.activebanner, category: catresult.type, gif: catresult.gif, gifclass: catresult.gifclass,
+                            activeimg: catresult.activeimg, quote: catresult.quote, actname: catresult.actname, products: prodresult.map(prodresult => prodresult.toJSON()), firstname: req.cookies.userData.firstname
+                    })
+            
+                })
+                
+            })
+        })
+        }
+    },
+    getPromos: function(req, res){
+        var checker = req.cookies.userData;
+        var sort = {name: -1};
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                db.findManyLimitedSorted(Product, null, null, sort, 5, function(prodresult){
+                    res.render('homepage', {
+                        title: 'HOME', logged: result.logged, product: prodresult.map(prodresult => prodresult.toJSON())
+                    });
+                })
+                
+            })
+        }
+        else{
+            db.findOne(Log, null, null, function(result){
+                db.findManyLimitedSorted(Product, null, null, sort, 5, function(prodresult){
+                    res.render('homepage', {
+                        title: 'HOME', logged: result.logged, firstname: req.cookies.userData.firstname, product: prodresult.map(prodresult => prodresult.toJSON())
+                    });
                 })
                 
             })
         }
     },
-    postEditReview: function(req, res){
-        var today = new Date();
-        var time = ("0" + today.getHours()).slice(-2) + ':' + ("0" + today.getMinutes()).slice(-2);
-        var review = {
-            date: today,
-            time: time,
-            content: req.body.content,
-            stars: req.body.stars
+    getNewRelease: function(req,res){
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                res.render('newrelease', {
+                    title: 'NEW RELEASES', logged: result.logged
+                });
+                
+            })
         }
-        db.updateOne(Review, {it_id: req.body.it_id}, review)
-        var redirect = '/viewReview?it_id='+req.body.it_id;
-        res.redirect(redirect);
-    },
-    getComment: function(req, res){
-        var it_id = req.query.it_id;
-        var comment = req.query.comment;
-        var today = new Date();
-        var time = ("0" + today.getHours()).slice(-2) + ':' + ("0" + today.getMinutes()).slice(-2);
-        var writer = req.cookies.userData.fname + " " + req.cookies.userData.lname;
-        var acct_email = req.cookies.userData.email;
-        var addCom = {
-            acct_email: acct_email,
-            it_id: it_id,
-            writer: writer,
-            comment: comment,
-            date: today,
-            time: time
+        else{
+            db.findOne(Log, null, null, function(result){
+                res.render('newrelease', {
+                    title: 'NEW RELEASES', logged: result.logged, firstname: req.cookies.userData.firstname
+                });
+                
+            })
         }
-        db.insertOne(Comment, addCom);
     },
-    getEditComment: function(req, res){
-        var it_id = req.query.it_id;
-        var comment = req.query.comment;
-        var acct_email = req.cookies.userData.email;
-        var filter = {it_id: it_id, acct_email: acct_email};
-        var newCom = {
-            comment: comment
+    getCart: function(req,res){
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            res.redirect('/homepage');
         }
-        db.updateOne(Comment, filter, newCom);
-    },
-    getDeleteComment: function(req, res){
-        var _id = req.query._id;
-        condition = {_id: _id};
-        db.deleteOne(Comment, condition);
-    },
-    getCheckReview: function(req, res){
-        var it_id = req.query.it_id;
-        var query = {it_id: it_id};
-        db.findOne(Review, query, "it_id", function(result){
-            res.send(result);
+        else{
+            var query = {
+                user: req.cookies.userData.email
+            }
+            db.findOne(Log, null, null, function(result){
+                db.findOne(Cart, query, null, function(cartresult){
+                    res.render('cart', {
+                        title: 'CART', logged: result.logged, firstname: req.cookies.userData.firstname, item: cartresult.item, price: cartresult.price, photo: cartresult.photo, region: req.cookies.userData.state
+                })
+                
+                
+            })
         })
+        }
+    },
+    getWishlist: function(req,res){
+        var checker = req.cookies.userData;
+        if(!checker)
+        {
+            res.redirect('/homepage');
+        }
+        else{
+            var query = {
+                user: req.cookies.userData.email
+            }
+            db.findOne(Log, null, null, function(result){
+                db.findOne(Wishlist, query, null, function(cartresult){
+                    res.render('wishlist', {
+                        title: 'WISHLIST', logged: result.logged, firstname: req.cookies.userData.firstname, item: cartresult.item, price: cartresult.price, photo: cartresult.photo, region: req.cookies.userData.state
+                })
+                
+                
+            })
+        })
+        }
+    },
+    getDeleteCart: function(req,res){
+        var proditem= req.query.item;
+        db.findOne(Product, {name: proditem}, null, function(prodresult){
+            var prodphoto = prodresult.photo;
+            var prodprice = prodresult.price
+            db.findOne(Cart, {user:req.cookies.userData.email}, null, function(cartresult){
+                cartitem = cartresult.item;
+                cartphoto = cartresult.photo;
+                cartprice = cartresult.price;
+                itemindex = cartitem.indexOf(proditem)
+                photoindex = cartphoto.indexOf(prodphoto)
+                priceindex = cartprice.indexOf(prodprice)
+                cartitem.splice(itemindex, 1);
+                cartphoto.splice(photoindex, 1);
+                cartprice.splice(priceindex, 1);
+                var update = {
+                    item: cartitem,
+                    photo: cartphoto,
+                    price: cartprice,
+                }
+                db.updateOne(Cart, {user:req.cookies.userData.email}, update)
+
+            })
+        })
+    },
+    getDeleteWishlist: function(req,res){
+        var proditem= req.query.item;
+        db.findOne(Product, {name: proditem}, null, function(prodresult){
+            var prodphoto = prodresult.photo;
+            var prodprice = prodresult.price
+            db.findOne(Wishlist, {user:req.cookies.userData.email}, null, function(cartresult){
+                cartitem = cartresult.item;
+                cartphoto = cartresult.photo;
+                cartprice = cartresult.price;
+                itemindex = cartitem.indexOf(proditem)
+                photoindex = cartphoto.indexOf(prodphoto)
+                priceindex = cartprice.indexOf(prodprice)
+                cartitem.splice(itemindex, 1);
+                cartphoto.splice(photoindex, 1);
+                cartprice.splice(priceindex, 1);
+                var update = {
+                    item: cartitem,
+                    photo: cartphoto,
+                    price: cartprice,
+                }
+                db.updateOne(Wishlist, {user:req.cookies.userData.email}, update)
+
+            })
+        })
+    },
+    getTotal: function(req, res){
+        var sub = Number(req.query.sub);
+        var total = Number(req.query.total);
+        var email = req.cookies.userData.email
+        var filter = {email: email}
+        var update = {
+            subtotal: sub,
+            total: total
+        }
+        db.updateOne(Account, filter, update);
+    },
+    getCheckPassword: function(req,res){
+        var p = req.query.password;
+        var query = {email: req.cookies.userData.email};
+        var hash = crypto.createHash('md5');
+        db.findOne(Account, query, null, function(result){
+            var passHash = p + result.salt;
+            hash = hash.update(passHash).digest('hex');
+            if(hash === result.hash)
+            {
+                res.send(result);
+            }
+            else{
+                res.send(false)
+            }
+        })
+    },
+    postProfile: function(req,res){
+        var firstname = req.body.name1;
+        var lastname = req.body.name2;
+        var num = req.body.phone;
+        var email = req.body.email;
+        var password = req.body.password;
+        var address = req.body.address;
+        var state = req.body.region;
+        if(firstname == '' || firstname == null)
+        firstname = req.cookies.userData.firstname
+        if(lastname == '' || lastname == null)
+        lastname = req.cookies.userData.lastname;
+        if(num =='' || num == null)
+        num = req.cookies.userData.num;
+        if(email == '' || email == null)
+        email = req.cookies.userData.email;
+        if(password != "" || password == null)
+        {
+            var password = req.body.password + req.cookies.userData.salt;
+            var hash = crypto.createHash('md5').update(password).digest('hex');
+        }
+        else{
+            var hash = req.cookies.userData.hash
+        }
+        if(address == '' || address == null)
+        address = req.cookies.userData.address
+        if(state == '' || state == null)
+        state = req.cookies.userData.state
+
+        var update = {
+            firstname: firstname,
+            lastname: lastname,
+            email: email,
+            num: num,
+            state: state,
+            address: address,
+            hash: hash
+        }
+        db.updateOne(Account, {email: req.cookies.userData.email}, update);
+        db.findOne(Account, {email:email}, null, function(result){
+            res.clearCookie("userData");
+            res.cookie('userData', result)
+            res.redirect('/profile')
+        })
+    },
+    getCheckout: function(req,res){
+        var checker = req.cookies.userData;
+        if(checker)
+        {
+            db.findOne(Log, null, null, function(result){
+                var accquery = {email: req.cookies.userData.email}
+                db.findOne(Account, accquery, null, function(accresult){
+                    if(accresult.subtotal == 0){
+                        res.redirect('/homepage');
+                    }
+                    else{
+                        res.render('checkout', {
+                            title: 'CHECKOUT', logged: result.logged, firstname: accresult.firstname, total: accresult.total,
+                            address: accresult.address, state: accresult.state
+                        });
+                    }
+                })
+                
+            })
+        }
+        else
+        res.redirect('/homepage');
+    },
+    getNextday: function(req,res){
+        var curdate = req.query.curdate;
+        var nextDay = new Date(curdate);
+        var n  = nextDay.getDate() + 1;
+        nextDay.setDate(n);
+        var update = {
+            dateToday: nextDay
+        }
+        db.updateMany(Transaction, null, update)
+    },
+    postCheckout: function(req,res){
+        var id = req.body.rand;
+        var email = req.cookies.userData.email;
+        var state = req.cookies.userData.state;
+        var add;
+        if(state == "Metro Manila")
+        add = 2
+        if(state == "North Luzon")
+        add = 3
+        if(state == "South Luzon")
+        add = 3
+        if(state == "Visayas")
+        add = 4
+        if(state == "Mindanao")
+        add = 5
+        
+        db.findOne(Transaction, null, null, function(result){
+        var curdate = result.dateToday;
+        var dateOrd = new Date(curdate)
+        var dateRec = new Date(curdate);
+        var n  = dateRec.getDate() + add;
+        dateRec.setDate(n);
+
+        db.findOne(Cart, {user: email}, null, function(cartresult){
+            var sum = 0;
+            for(var i = 0; i < cartresult.item.length; i++){
+                sum += cartresult.price[i];
+            }
+            var trans = {
+                email: email,
+                id: id,
+                amount: sum,
+                items: cartresult.item,
+                photos: cartresult.photo,
+                prices: cartresult.price,
+                dateOrd: dateOrd,
+                dateRec: dateRec,
+                dateToday: dateOrd
+            }
+            db.insertOne(Transaction, trans)
+                cartitem = cartresult.item;
+                cartphoto = cartresult.photo;
+                cartprice = cartresult.price;
+            var update = {
+                item: [],
+                photo: [],
+                price: [],
+            }
+            db.updateOne(Cart, {user:req.cookies.userData.email}, update)
+        })
+        })
+        
+
     }
+
 }
+
 module.exports = controller;

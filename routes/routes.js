@@ -1,5 +1,3 @@
-const express = require('express');
-const controller = require('../controllers/controller.js');
 const multer = require('multer');
 const multers3 = require('multer-s3');
 const aws = require('aws-sdk');
@@ -9,7 +7,6 @@ const s3 = new aws.S3({
     secretAccessKey: process.env.SECRET_ACCESS,
     Bucket: 'onclick'
 })
-
 
 const upload = multer({
     storage: multers3({
@@ -33,86 +30,91 @@ const upload = multer({
     }
 });
 
+// import module `express`
+const express = require('express');
+
+// import module `controller` from `../controllers/controller.js`
+const controller = require('../controllers/controller.js');
+
 const app = express();
 
-app.get('/', controller.getAbout);
+app.get('/', controller.getHomepage);
+
+app.get('/homepage', controller.getHomepage);
+
+app.get('/aboutus', controller.getAboutUs);
+
+app.get('/boss', controller.getBoss);
+
+app.get('/checkEmail', controller.getCheckEmail);
 
 app.get('/login', controller.getLogin);
 
-app.get('/home', controller.getHome);
-
-app.get('/success', controller.getSuccess);
-
-app.get('/dashboard', controller.getDashboard);
-
-app.get('/it_create', controller.getItCreate);
-
-app.get('/registration', controller.getRegistration);
+app.post('/login', controller.postLogin);
 
 app.get('/logout', controller.getLogout);
 
-app.get('/newmemory', controller.getMemCreate);
+app.get('/search', controller.getSearch);
 
-app.get('/tracker', controller.getTracker);
+app.get('/signup', controller.getSignup);
 
-app.get('/itineraries', controller.getAllIt);
+app.get('/profile', controller.getProfile);
 
-app.get('/it_view', controller.getItView);
+app.get('/contactus', controller.getContactUs);
 
-app.get('/download_it', controller.getDownloadIt);
+app.get('/unavailable', controller.getUnavailable);
 
-app.get('/it_edit', controller.getItEdit);
+app.get('/categories', controller.getCategories);
 
-app.get('/editAct', controller.getActEdit);
+app.get('/promos', controller.getPromos);
 
-app.get('/deleteAct', controller.getActDelete);
+app.get('/newrelease', controller.getNewRelease);
 
-app.get('/search', controller.getItSearch);
+app.get('/cart', controller.getCart);
 
-app.get('/memorySearch', controller.getMemSearch);
+app.get('/wishlist', controller.getWishlist);
 
-app.get('/checkUsername', controller.getCheckUsername);
+app.get('/checkout', controller.getCheckout);
 
-app.get('/mem_edit', controller.getMemEdit);
+app.get('/products', controller.getProducts);
 
-app.get('/deleteMemory', controller.getDeleteMemory);
+app.get('/checkLogged', controller.getLogged);
 
-app.get('/deleteIt', controller.getDeleteIt);
+app.get('/checkReview', controller.getReview);
 
-app.get('/error', controller.getError);
+app.get('/checkBought', controller.getBought);
 
-app.get('/details', controller.getDetails);
+app.get('/addCart', controller.getAddCart);
 
-app.get('/viewReview', controller.getViewReview);
+app.get('/addWishlist', controller.getAddWishlist);
 
-app.get('/deleteReview', controller.getDeleteReview);
+app.get('/deleteCart', controller.getDeleteCart);
 
-app.get('/review', controller.getReview);
+app.get('/deleteWishlist', controller.getDeleteWishlist);
 
-app.get('/editReview', controller.getEditReview);
+app.get('/getTotal', controller.getTotal);
 
-app.get('/comment', controller.getComment);
+app.get('/checkpassword', controller.getCheckPassword);
 
-app.get('/editComment', controller.getEditComment);
+app.get('/checkid', controller.getCheckId);
 
-app.get('/deleteComment', controller.getDeleteComment);
+app.get('/checkname', controller.getCheckname)
 
-app.get('/checkReview', controller.getCheckReview);
+app.get('/receive', controller.getReceive);
 
-app.post('/editReview', controller.postEditReview);
+app.get('/cancel', controller.getCancel);
 
-app.post('/review', controller.postReview);
+app.get('/return', controller.getReturn)
 
-app.post('/login', controller.postLogin);
+app.get('/nextday', controller.getNextday);
 
-app.post('/registration', controller.postRegistration);
+app.post('/profile', controller.postProfile);
 
-app.post('/newmemory', upload.array('memimages', 10) ,controller.postMemCreate);
+app.post('/signup', upload.single('img'), controller.postSignup)
 
-app.post('/mem_edit',  upload.array('memimages', 10), controller.postMemEdit);
+app.post('/products', controller.postProducts)
 
-app.post('/it_create', controller.postItCreate);
+app.post('/checkout', controller.postCheckout)
 
-app.post('/it_edit', controller.postItEdit);
 
 module.exports = app;
