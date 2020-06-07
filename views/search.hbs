@@ -426,7 +426,7 @@ body {
         {{#each product}}
 				    <div class="img " >
               <br><br>
-				      <a href="" class="name"><center><strong>{{this.name}}</strong></center><img src="{{this.photo}}"></a>
+				      <a href="/products" class='name'><center><strong style="color: red;">{{this.name}}</strong></center><img src="{{this.photo}}"></a>
 				    </div>
         {{/each}}
 		    </div>
@@ -465,7 +465,7 @@ body {
     <script>
       $(document).on("click", ".name", function(){
         var name = $(this).children().children().text();
-        var href = '/products' + "?name=" + name;
+        var href = $(this).attr('href') + "?name=" + name;
         $(this).attr('href', href) 
       })
     </script>
